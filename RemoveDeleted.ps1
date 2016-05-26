@@ -1,0 +1,1 @@
+Get-SPDeletedSite -webapplication "http://insightaccess-qa.insight.com" | Remove-SPDeletedSite

@@ -1,0 +1,3 @@
+Get-SPEnterpriseSearchServiceInstance -Local | Start-SPEnterpriseSearchServiceInstance;
+Get-SPEnterpriseSearchQueryAndSiteSettingsServiceInstance -Local | Start-SPEnterpriseSearchQueryAndSiteSettingsServiceInstance
+

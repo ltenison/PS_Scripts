@@ -1,0 +1,90 @@
+function GetWebSizes ($StartWeb, $LikeString)
+{
+    write-host " "
+    write-host "Starting with..." $StartWeb
+    $web = Get-SPWeb $StartWeb
+    [long]$total = 0
+    write-host "Scanning Contents of Root site" $web.name
+    $total += GetWebSize -Web $web
+    write-host "Scanning Contents of Subsites..."
+    $total += GetSubWebSizes -Web $web
+    $totalInMb = ($total/1024)/1024
+    $totalInMb = "{0:N2}" -f $totalInMb
+    $totalInGb = (($total/1024)/1024)/1024
+    $totalInGb = "{0:N2}" -f $totalInGb
+    write-host "Total size of all sites at" $StartWeb "is" $totalInMB "MBytes"
+    write-host " "
+    $web.Dispose()
+} 
+
+function GetWebSize ($Web)
+{
+    [long]$subtotal = 0
+    write-host "Looking thru Root Site libraries..."
+    foreach ($folder in $Web.Folders)
+    {
+         write-host "  > Root Library..." $folder.Name
+         $w = "n"
+         if($folder.Name -clike $LikeString) {
+            $w = "y"
+            }
+         $subtotal += GetFolderSize -Folder $folder -WriteVar $w
+    }
+    $subtotalInMb = ($subtotal/1024)/1024
+    $subtotalInMb = "{0:N2}" -f $subtotalInMb
+    write-host "Site" $Web.Title "is" $subtotalInMB "MBytes"
+    return $subtotal
+} 
+
+function GetSubWebSizes ($Web)
+{
+    [long]$subtotal = 0
+    foreach ($subweb in $Web.GetSubwebsForCurrentUser())
+    {
+        [long]$webtotal = 0
+        write-host "Scanning Sub-Site" $subweb.name
+        foreach ($folder in $subweb.Folders)
+        {
+            write-host "   > Sub-Site Library..." $folder.Name
+            $w = "n"
+            if($folder.Name -clike $LikeString) {
+               $w = "y"
+               }
+            $webtotal += GetFolderSize -Folder $folder -WriteVar $w
+        }
+        $webtotalInMb = ($webtotal/1024)/1024
+        $webtotalInMb = "{0:N2}" -f $webtotalInMb
+        write-host "Site" $subweb.Title "is" $webtotalInMB "MBytes"
+        $subtotal += $webtotal
+        $subtotal += GetSubWebSizes -Web $subweb
+    }
+    return $subtotal
+} 
+
+function GetFolderSize ($Folder,$WriteVar)
+{
+    if($WriteVar -eq "y") {
+       write-host "     > Container URL:" $Folder.URL "Name:" $Folder.Name
+       Write-Output $Folder.Name | Out-File $outFile -Append
+       }
+    [long]$folderSize = 0  
+    foreach ($file in $Folder.Files)
+    {
+        $folderSize += $file.Length;
+    }
+    $w = $WriteVar
+    foreach ($fd in $Folder.SubFolders)
+    {
+        $folderSize += GetFolderSize -Folder $fd -WriteVar $w
+    }
+    return $folderSize
+}
+
+#Main Call here
+    cls
+    write-host "Starting site collection scan..."
+    $Today = Get-Date -Format "dd-M-yy"
+    $outFile = "E:\temp\ScanLog-$Today.txt"
+    GetWebSizes -StartWeb http://splab/ -LikeString "*FolderDocLib*"
+#   GetWebSizes -StartWeb http://insightaccess-qa.insight.com/services/sales-support-team
+   write-host "Site Scan Finished."

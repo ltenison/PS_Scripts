@@ -1,0 +1,3 @@
+New-SPPowerPointConversionServiceApplication [-Name] <String> -ApplicationPool <SPIisWebServiceApplicationPoolPipeBind> [-AssignmentCollection <SPAssignmentCollection>] [-Confirm [<SwitchParameter>]] [-WhatIf [<SwitchParameter>]]
+
+New-SPPowerPointConversionServiceApplicationProxy [-Name] <String> -ServiceApplication <SPPowerPointConversionServiceApplicationPipeBind> [-AddToDefaultGroup <SwitchParameter>] [-AssignmentCollection <SPAssignmentCollection>] [-Confirm [<SwitchParameter>]] [-WhatIf [<SwitchParameter>]]

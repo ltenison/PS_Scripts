@@ -1,0 +1,1 @@
+Get-SPWebApplication https://spmigrateapriaconnect.apria.com | Get-SPSite -Limit All | Get-SPWeb -Limit All | Select Title, URL, ID, ParentWebID | Export-CSV D:\Insight\Scripts\InfoArch.csv -NoTypeInformation 
