@@ -1,0 +1,9 @@
+$siteURL = “http://website.domain.com”
+$webApp = Get-SPWebApplication $siteURL
+$webApp.AllowDesigner = $false
+$webApp.Update()
+
+$webApp(or $site).AllowDesigner = $true(or $false)
+$webApp(or $site).AllowRevertFromTemplate = $true(or $false)
+$webApp(or $site).AllowMasterPageEditing = $true(or $false)
+$webApp(or $site).ShowURLStructure = $true(or $false)

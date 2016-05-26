@@ -1,0 +1,8 @@
+$site = Get-SPSite http://home.iaccess.insight.com/sites/ltwftest
+ $properties = $site.RootWeb.Properties
+
+if ($properties[“docid_msft_hier_siteprefix”] -eq $null)
+ {
+ $properties[“docid_msft_hier_siteprefix”] = “”
+$properties.Update()
+ }

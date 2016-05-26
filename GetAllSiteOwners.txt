@@ -1,0 +1,23 @@
+$txt = ""
+$siteUrl = Read-Host "enter site url here:"
+
+$rootSite = New-Object Microsoft.SharePoint.SPSite($siteUrl)
+
+foreach($subsite in $rootSite.AllWebs) {
+    foreach($siteAdmin in $subsite.SiteAdministrators) {
+        #$txt += "$($siteAdmin.ParentWeb.Url);$($siteAdmin.DisplayName);Site Admin`r"
+    }
+	foreach($group in $subsite.Groups) {
+		if ($group.Name.ToLower().Contains("owner")) {
+			foreach ($owner in $group.Users) {
+				$txt += "$($siteAdmin.ParentWeb.Url);$($owner.Name);Site Owner`r"
+			}
+		}
+	}
+    $subsite.Dispose()
+}
+$rootSite.Dispose()
+
+out-file -filepath owners.csv -inputobject $txt
+
+

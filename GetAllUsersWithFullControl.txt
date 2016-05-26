@@ -1,0 +1,188 @@
+#Function GetPermissions-SPSubSites
+# gets starting web application and iterests thru all subsites
+
+function GetPermissions-SPSubSites 
+{
+
+# Create the stopwatch
+
+[System.Diagnostics.Stopwatch] $sw;
+
+$sw = New-Object System.Diagnostics.StopWatch
+
+$sw.Start()
+
+cls
+
+
+$filePath = "C:\SiteDetails.csv"
+
+$global:resultObjects =@()
+
+Start-SPAssignment –Global
+
+$oContentService = [Microsoft.SharePoint.Administration.SPWebService]::ContentService; 
+
+[Microsoft.SharePoint.Administration.SPWebApplicationCollection]$waColl = $oContentService.WebApplications; 
+
+$waColl1 = $waColl | where-object {$_.IsAdministrationWebApplication -eq $FALSE} 
+
+foreach ($wa in $waColl1)
+{ 
+
+# #Get the starting site from which to get all sub-sites
+# $rootSite = New-Object Microsoft.SharePoint.SPSite($siteUrl)
+
+#$spWebApp = $rootSite.WebApplication
+
+$waName = $wa.Name
+$sites = $wa.Sites
+
+foreach ($obj in $sites)
+{
+
+ $siteurl = $obj.Url.Replace("http://","").Replace(":","").split("/")
+ $site=new-object Microsoft.SharePoint.SPSite($obj.Url)
+
+ #$web = $site.RootWeb
+
+#Run function to get all sub-sites below the start site
+
+Get-SPSubWebs -StartWeb $site
+}
+
+}
+
+
+
+$sw.Stop()
+
+$resultObject = New-Object system.Object
+$resultObject | Add-Member -type NoteProperty -Name WebURL -Value $sw.Elapsed.ToString()
+$resultObject | Add-Member -type NoteProperty -Name UserLogin -Value $sw.Elapsed.ToString()
+$resultObject | Add-Member -type NoteProperty -Name UserEmail -Value $sw.Elapsed.ToString()
+$resultObject | Add-Member -type NoteProperty -Name UserPermission -Value $sw.Elapsed.ToString()
+$global:resultObjects += $resultObject
+
+# Write the compact output to the screen
+
+write-host "Login checked in Time: ", $sw.Elapsed.ToString()
+
+$global:resultObjects | Select-Object WebURL,UserLogin,UserEmail,UserPermission | Export-Csv $filePath
+
+Stop-SPAssignment –Global
+
+}
+
+
+function GetPermission-SPSubSite($myweb)
+{
+
+$mywebUsers = $myweb.Users
+$groupNameWildcard = "Owners"
+$existingRole = "Full Control"
+
+#Iterate through all SPRoleAssignments on the web
+foreach ($roleAssignment in $myweb.RoleAssignments)
+{
+
+#Pull out the principal
+$principal = $roleAssignment.Member;
+
+#If it is a group then check for users within the group
+if ($principal.GetType() -eq [Microsoft.SharePoint.SPGroup])
+{
+
+$roleGroup = [Microsoft.SharePoint.SPGroup]$principal;
+    #if owner group
+    # if ($roleGroup.Name.Contains($groupNameWildcard))
+    # {
+
+     foreach ($roleDef in $roleAssignment.RoleDefinitionBindings)
+     {
+      if ($roleDef.Name -eq $existingRole)
+      {
+       foreach($user in $roleGroup.Users)
+       {
+       $resultObject = New-Object system.Object
+          $resultObject | Add-Member -type NoteProperty -Name WebURL -Value $myweb.Url
+          $resultObject | Add-Member -type NoteProperty -Name UserLogin -Value $user.LoginName
+          $resultObject | Add-Member -type NoteProperty -Name UserEmail -Value $user.Email
+          $resultObject | Add-Member -type NoteProperty -Name UserPermission -Value $roleDef.Name.ToString()
+          $global:resultObjects += $resultObject
+          write-host $myweb.Url , “; “, $user.LoginName , “; ”,$user.Email , “; ”, $roleDef.Name.ToString()
+       }
+      }
+     }
+
+   # }    
+
+}
+
+}
+
+ 
+
+foreach($mywebUser in $mywebUsers)
+ {
+ $myPermissions = $myweb.Permissions
+  foreach($myPermission in $myPermissions)
+  {
+   if($mywebUser.ID -eq $myPermission.Member.ID)
+   {
+    foreach ($role in $mywebUser.Roles)
+    {
+     $permission = $role.ToString()
+     if ($role.Type -ne [Microsoft.SharePoint.SPRoleType]::None -and $permission -contains 'Full Control')
+     {
+      $resultObject = New-Object system.Object
+          $resultObject | Add-Member -type NoteProperty -Name WebURL -Value $myweb.Url
+          $resultObject | Add-Member -type NoteProperty -Name UserLogin -Value $mywebUser.LoginName
+          $resultObject | Add-Member -type NoteProperty -Name UserEmail -Value $mywebUser.Email
+          $resultObject | Add-Member -type NoteProperty -Name UserPermission -Value $role.ToString()
+          $global:resultObjects += $resultObject
+          write-host $myweb.Url , “; “, $mywebUser.LoginName , “; ”,$mywebUser.Email , “; ”, $role.ToString()
+       }
+     }
+   }
+  }
+ }
+
+}
+
+
+
+
+function Get-SPSubWebs ($StartWeb)
+{
+
+#Get all sub-sites below the start site
+#$webs = $StartWeb.GetSubwebsForCurrentUser()
+
+$webs = $StartWeb.AllWebs
+
+#Run this routine if there are sub-sites present
+
+if ($webs.Count -gt 0)
+{
+
+#Walk through each sub-site
+foreach ($nextWeb in $webs)
+{
+
+#Check for sub-sites underneath this site
+Get-SPSubWebs -StartWeb $nextWeb
+
+#Run function to delete the site
+GetPermission-SPSubSite $nextWeb
+$nextWeb.Dispose()
+}
+
+}
+
+}
+
+
+
+#Runs from here
+GetPermissions-SPSubSites 

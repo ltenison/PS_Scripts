@@ -1,0 +1,49 @@
+#getalluserseverywhere
+Add-PSSnapin microsoft.sharepoint.powershell -ErrorAction SilentlyContinue
+ 
+$timestamp = get-date -format "yyyyMMdd_hhmmtt"
+$filenameStart = "AllFARMUsers"
+$logfile = ("{0}{1}.csv" -f $filenamestart, $timestamp)
+ 
+$header = "type,user,group,weburl,webname"
+$header | out-file -FilePath $logfile
+ 
+$iissitelist = get-spwebapplication 
+foreach($onesite in $iissitelist)
+{
+	foreach ($SiteCollection in $onesite.sites)
+	{
+		write-host $SiteCollection -foregroundcolor Blue	
+		foreach ($web in $SiteCollection.Allwebs)
+		{ 
+			 write-host "    " $web.url $web.name "users:" -foregroundcolor yellow
+			 # Write-host "        " $web.users | select name 
+			 foreach ($userw in $web.users)
+			 {
+				if ($userw -like "NT AUTHORITY\*")
+				{
+					write-host "        " $userw -foregroundcolor white
+					#$msg = ("{0},{1} user:{2}" -f $web.url,$web.name, $userw)
+					$msg = ("RootUser,{0},-,{1},{2}" -f $userw, $web.url,$web.name) 
+					$msg | out-file -FilePath $logfile  -append
+				}
+			   }
+			 foreach ($group in $web.Groups)
+			{
+				 Write-host "        " $web.url $group.name: -foregroundcolor green
+				 foreach ($user in $group.users)
+				 { 
+					if ($user -like "NT AUTHORITY\*")
+					{   
+						  Write-host "            " $user -foregroundcolor white
+						  #$msg = ("{0},{1},group:{2}, user:{3}" -f $web.url, $web.name, $group, $user)
+						  $msg = ("GroupUser,{0},{1},{2},{3}" -f $user, $group, $web.url, $web.name)
+						  $msg | out-file -FilePath $logfile  -append
+					}
+				 }
+			}	
+			$web.Dispose()
+		}
+ 
+	}
+}

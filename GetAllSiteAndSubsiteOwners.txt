@@ -1,0 +1,42 @@
+function IterateSubSites ([Microsoft.SPWeb]$subSite) 
+{ 
+  if ($subSite $null) 
+  { 
+     if($subSite.Webs -ne $null)
+     {
+        foreach($subsites in $subSite.Webs)
+        {
+          IterateSubSites($subsites)
+        }
+     }
+  }
+}
+
+$webApplicationURL = "http://localhost"
+$webApp = Get-SPWebApplication $webApplicationURL
+
+foreach($site in $webApp.Sites)
+{
+  foreach($subWeb in $site.AllWebs)
+  {
+     Write-Host $subWeb.Url
+     foreach($group in $subWeb.Groups) 
+       {
+         if($group.Name -like "*Owners*")
+         {
+           Write-Host "Owner(s): "
+           foreach($user in $group.Users)
+           {
+            Write-Host $user.Name "; "; 
+           }
+         }
+       }
+     if($subWeb.IsRootWeb -ne $true)
+     {
+       IterateSubSites($subWeb)
+     }
+    $subWeb.Dispose()
+   }
+$site.Dispose()
+}
+
